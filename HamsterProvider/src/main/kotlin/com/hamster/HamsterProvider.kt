@@ -130,6 +130,11 @@ class HamsterProvider : CsxApi() {
                     streamUrl = streamUrl.replace("\\/", "/")
                 }
                 
+                // Skip preview trailers
+                if (streamUrl.contains("thumb-") || streamUrl.contains(".t.mp4") || streamUrl.contains(".t.av1")) {
+                    continue
+                }
+                
                 if (addedUrls.contains(streamUrl)) continue
                 addedUrls.add(streamUrl)
                 
@@ -140,7 +145,7 @@ class HamsterProvider : CsxApi() {
                 var qualityValue = Qualities.Unknown.value
                 var qualityName = if (isM3u8) "HLS Stream" else "Direct Stream"
                 
-                if (qualityMatch != null) {
+                if (qualityMatch != null && !isM3u8) {
                     val q = qualityMatch.groupValues[1].toIntOrNull() ?: 0
                     qualityName = "${q}p"
                     qualityValue = when (q) {
