@@ -19,15 +19,19 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-          cache: 'gradle'
 
       - name: Make executable
         run: chmod +x ./gradlew
 
       - name: Build Extensions
+        run: ./gradlew makeCsx
+
+      - name: Generate plugins.json
+        run: ./gradlew makePluginsJson
+
+      - name: Prepare build directory
         run: |
-          ./gradlew makeCsx
-          ./gradlew makePluginsJson
+          mkdir -p build
           cp MlsbdProvider/build/MlsbdProvider.csx build/
           cp ViralLinksProvider/build/ViralLinksProvider.csx build/
           cp WowProvider/build/WowProvider.csx build/
