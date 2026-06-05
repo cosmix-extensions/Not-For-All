@@ -1,0 +1,45 @@
+name: Build & Deploy Cosmix Extension
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Make executable
+        run: chmod +x ./gradlew
+
+      - name: Build Extensions
+        run: |
+          ./gradlew makeCsx
+          ./gradlew makePluginsJson
+          cp MlsbdProvider/build/MlsbdProvider.csx build/
+          cp ViralLinksProvider/build/ViralLinksProvider.csx build/
+          cp WowProvider/build/WowProvider.csx build/
+          cp WowUncutProvider/build/WowUncutProvider.csx build/
+          cp MlsbdProvider/build/MlsbdProvider.jar build/
+          cp ViralLinksProvider/build/ViralLinksProvider.jar build/
+          cp WowProvider/build/WowProvider.jar build/
+          cp WowUncutProvider/build/WowUncutProvider.jar build/
+          cp repo.json build/
+
+      - name: Deploy to builds branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: builds
+          folder: build
+          clean: true

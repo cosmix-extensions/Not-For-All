@@ -1,0 +1,276 @@
+package com.mlsbd
+
+import com.cosmix.app.*
+import com.cosmix.app.utils.*
+import org.jsoup.nodes.Element
+
+class MlsbdProvider : CsxApi() {
+    override var mainUrl = "https://mlsbd.co"
+    override var name = "MLSBD"
+    override var lang = "en"
+    override val hasMainPage = true
+    override val supportedTypes = setOf(TvType.TvSeries, TvType.Movie, TvType.Anime)
+
+    private val ua = mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+    override val mainPage = mainPageOf(
+        "$mainUrl/" to "Latest Movies",
+        "$mainUrl/category/bollywood-movies/" to "Bollywood",
+        "$mainUrl/category/hollywood-movies/" to "Hollywood",
+        "$mainUrl/category/bangla-movies/" to "Bengali",
+        "$mainUrl/category/dual-audio-movies/" to "Dual Audio",
+        "$mainUrl/category/hindi-dubbed-movies/" to "Hindi Dubbed",
+        "$mainUrl/category/bangla-dubbed/" to "Bangla Dubbed",
+        "$mainUrl/category/korean-movies/" to "Korean",
+        "$mainUrl/category/tv-series/" to "TV Series",
+        "$mainUrl/category/anime/" to "Anime",
+        "$mainUrl/category/animation-movies/" to "Animation",
+        "$mainUrl/category/klikk/" to "Klikk",
+        "$mainUrl/category/chorki-originals/" to "Chorki",
+        "$mainUrl/category/mx-player/" to "MX Player",
+        "$mainUrl/category/south-indian-movies/" to "South Indian",
+        "$mainUrl/category/foreign-language-film/japanese-movie/" to "Japanese",
+        "$mainUrl/category/horror-movies/" to "Horror",
+        "$mainUrl/category/unrated/ullu/" to "Ullu",
+        "$mainUrl/category/unrated/" to "Unrated"
+    )
+
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val url = if (page == 1) request.data else "${request.data.trimEnd('/')}/page/$page/"
+        val doc = app.get(url, headers = ua, timeout = 60).document
+        val items = doc.select("div.single-post, article.main-post-area div.single-post").mapNotNull { el ->
+            val a = el.selectFirst(".post-desc a, .thumb a") ?: return@mapNotNull null
+            val href = a.attr("abs:href").ifBlank { return@mapNotNull null }
+            val title = el.selectFirst("h2.post-title")?.text()?.trim() ?: return@mapNotNull null
+            val poster = el.selectFirst("div.thumb img")?.attr("src")
+            val isSeries = title.contains("Season", true) || title.contains("Episode", true) || href.contains("series", true) || href.contains("season", true) || href.contains("episode", true)
+            if (isSeries) newTvSeriesSearchResponse(title, href, TvType.TvSeries) { posterUrl = poster }
+            else newMovieSearchResponse(title, href, TvType.Movie) { posterUrl = poster }
+        }
+        return newHomePageResponse(request.name, items, items.isNotEmpty() && page < 50)
+    }
+
+    override suspend fun search(query: String, page: Int): SearchResponseList? {
+        val url = if (page == 1) "$mainUrl/?s=${java.net.URLEncoder.encode(query, "UTF-8")}" else "$mainUrl/page/$page/?s=${java.net.URLEncoder.encode(query, "UTF-8")}"
+        val doc = app.get(url, headers = ua, timeout = 60).document
+        val items = doc.select("div.single-post").mapNotNull { el ->
+            val a = el.selectFirst(".post-desc a, .thumb a") ?: return@mapNotNull null
+            val href = a.attr("abs:href").ifBlank { return@mapNotNull null }
+            val title = el.selectFirst("h2.post-title")?.text()?.trim() ?: return@mapNotNull null
+            val poster = el.selectFirst("div.thumb img")?.attr("src")
+            val isSeries = title.contains("Season", true) || title.contains("Episode", true) || href.contains("series", true) || href.contains("season", true) || href.contains("episode", true)
+            if (isSeries) newTvSeriesSearchResponse(title, href, TvType.TvSeries) { posterUrl = poster }
+            else newMovieSearchResponse(title, href, TvType.Movie) { posterUrl = poster }
+        }
+        return newSearchResponseList(items, items.isNotEmpty())
+    }
+
+    override suspend fun load(url: String): LoadResponse {
+        val doc = app.get(url, headers = ua, timeout = 60).document
+        val title = doc.selectFirst("h1.entry-title, h1.post-title, h1")?.text()?.trim() ?: doc.title().trim()
+        var poster = doc.selectFirst("div.entry-content img.aligncenter, div.post-content img, div.content img")?.attr("src")
+        if (poster == null || poster.contains("mlsbdshop")) {
+            poster = doc.select("img").firstOrNull { it.attr("src").contains("uploads/images") }?.attr("src") ?: doc.selectFirst("meta[property=og:image]")?.attr("content")
+        }
+
+        var description = doc.selectFirst("meta[property=og:description]")?.attr("content")
+        if (description == null || description.contains("Storyline :")) {
+            description = doc.select("div.entry-content p, div.post-content p").firstOrNull { it.text().contains("Storyline") || it.text().contains("Director") }?.text()?.trim() ?: doc.title().trim()
+        }
+
+        val contentArea = doc.selectFirst("div.entry-content, div.post-content, div.content")
+        val isSeries = title.contains("Episode", true) || title.contains("Season", true) || 
+                       url.contains("episode", true) || url.contains("season", true) || 
+                       (contentArea?.text()?.contains(Regex("(?i)(Download Now Epi|Download Episode|Episode \\d+)")) == true)
+
+        if (isSeries && contentArea != null) {
+            val episodes = mutableListOf<Episode>()
+            var currentEpNum = 1
+            val episodeMap = mutableMapOf<Int, MutableList<String>>()
+
+            val seasonMatch = Regex("(?i)Season[- ]?(\\d+)").find(title)
+            val parsedSeason = seasonMatch?.groupValues?.get(1)?.toIntOrNull() ?: 1
+
+            for (tag in contentArea.children()) {
+                val text = tag.text().trim()
+                
+                val headerEpMatch = Regex("(?i)(?:Epi|Ep|Episode)[- ]?(\\d+)").find(text)
+                if (headerEpMatch != null && tag.tagName() in listOf("h2", "h3", "h4", "p", "div", "strong", "b")) {
+                    currentEpNum = headerEpMatch.groupValues[1].toInt()
+                }
+
+                val links = if (tag.tagName() == "a" && tag.hasAttr("href")) listOf(tag) else tag.select("a[href]")
+                
+                for (a in links) {
+                    val aText = a.text().trim()
+                    val href = a.attr("abs:href")
+                    
+                    val isValid = href.contains("savelinks", true) || href.contains("gdflix", true) || 
+                                  href.contains("hubcloud", true) || href.contains("drive", true) || 
+                                  href.contains("mega", true) || href.contains("vimeo", true) || 
+                                  aText.contains("Download in", true) || aText.contains("Watch Online", true) || 
+                                  aText.contains("Episode", true) || aText.contains("Epi", true)
+                    
+                    if (isValid) {
+                        val linkEpMatch = Regex("(?i)(?:Epi|Ep|Episode)[- ]?(\\d+)").find(aText)
+                        val epNumForLink = if (linkEpMatch != null) {
+                            linkEpMatch.groupValues[1].toInt()
+                        } else {
+                            currentEpNum
+                        }
+                        
+                        var quality = "Unknown"
+                        if (aText.contains("720p", true)) quality = "720p"
+                        else if (aText.contains("1080p", true)) quality = "1080p"
+                        else if (aText.contains("480p", true)) quality = "480p"
+                        else if (aText.contains("4K", true)) quality = "4K"
+                        else {
+                            val parentText = tag.text()
+                            if (parentText.contains("720p", true)) quality = "720p"
+                            else if (parentText.contains("1080p", true)) quality = "1080p"
+                            else if (parentText.contains("480p", true)) quality = "480p"
+                            else if (parentText.contains("4K", true)) quality = "4K"
+                        }
+                        
+                        episodeMap.getOrPut(epNumForLink) { mutableListOf() }.add("$href|$quality")
+                        currentEpNum = epNumForLink
+                    }
+                }
+            }
+
+            episodeMap.forEach { (epNum, links) ->
+                episodes.add(newEpisode(links.joinToString(",")) {
+                    this.name = "Episode $epNum"
+                    this.episode = epNum
+                    this.season = parsedSeason
+                    this.posterUrl = poster
+                })
+            }
+            
+            val sortedEpisodes = episodes.distinctBy { it.data }.sortedBy { it.episode }
+
+            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, sortedEpisodes) {
+                this.posterUrl = poster
+                this.plot = description
+            }
+        } else {
+            // Movie extraction
+            val iframes = doc.select("iframe").mapNotNull { it.attr("src") }.filter { it.startsWith("http") }.map { "$it|Unknown" }
+            val links = doc.select("a").mapNotNull { a -> 
+                val href = a.attr("abs:href")
+                val text = a.text()
+                if (href.contains("savelinks", true) || href.contains("gdflix", true) || href.contains("hubcloud", true) || href.contains("drive", true) || href.contains("mega", true) || href.contains("vimeo", true)) {
+                    var quality = "Unknown"
+                    if (text.contains("720p", true)) quality = "720p"
+                    else if (text.contains("1080p", true)) quality = "1080p"
+                    else if (text.contains("480p", true)) quality = "480p"
+                    else if (text.contains("4K", true)) quality = "4K"
+                    "$href|$quality"
+                } else null
+            }
+            val dataStr = (iframes + links).distinct().joinToString(",")
+            return newMovieLoadResponse(title, url, TvType.Movie, dataStr) {
+                this.posterUrl = poster
+                this.plot = description
+            }
+        }
+    }
+
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+        if (data.isBlank()) return false
+        val urls = data.split(",")
+
+        fun getQualityScore(q: String): Int {
+            return when {
+                q.contains("720p", true) -> 1
+                q.contains("1080p", true) -> 2
+                q.contains("480p", true) -> 3
+                q.contains("4K", true) -> 4
+                else -> 5
+            }
+        }
+
+        val sortedUrls = urls.sortedBy { getQualityScore(it.substringAfterLast("|", "Unknown")) }
+
+        sortedUrls.forEach { item ->
+            if (item.isBlank()) return@forEach
+            val parts = item.split("|")
+            val url = parts[0].trim()
+            val qualityStr = if (parts.size > 1) parts[1] else "Unknown"
+
+            val mappedQuality = when {
+                qualityStr.contains("720p", true) -> Qualities.P720.value
+                qualityStr.contains("1080p", true) -> Qualities.P1080.value
+                qualityStr.contains("480p", true) -> Qualities.P480.value
+                qualityStr.contains("4K", true) -> Qualities.P2160.value
+                else -> Qualities.Unknown.value
+            }
+
+            suspend fun processGdflix(gdUrl: String) {
+                try {
+                    val gdDoc = app.get(gdUrl, headers = ua, timeout = 60).document
+                    val validLinks = gdDoc.select("a").mapNotNull { it.attr("abs:href") }.filter { it.startsWith("http") }
+                    for (link in validLinks) {
+                        if (link.contains("r2.dev") || link.contains("cloudflare") || link.contains("worker") || link.contains("drive") || link.contains("download")) {
+                            callback.invoke(newExtractorLink(this.name, "GDFlix Direct", link, ExtractorLinkType.VIDEO) { quality = mappedQuality })
+                        } else if (!link.contains("gdflix")) {
+                            loadExtractor(link, subtitleCallback, callback)
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+
+            suspend fun processHubcloud(hcUrl: String) {
+                try {
+                    val hcDoc = app.get(hcUrl, headers = ua, timeout = 60).document
+                    val genLink = hcDoc.selectFirst("a[href*=hubcloud]")?.attr("abs:href")
+                    if (genLink != null) {
+                        val genDoc = app.get(genLink, headers = ua, timeout = 60).document
+                        val validLinks = genDoc.select("a").mapNotNull { it.attr("abs:href") }.filter { it.startsWith("http") }
+                        for (link in validLinks) {
+                            if (link.contains("hubcloud.cx") || link.contains("r2.dev") || link.contains("cloudflare") || link.contains("worker") || link.contains("drive")) {
+                                callback.invoke(newExtractorLink(this.name, "HubCloud Direct", link, ExtractorLinkType.VIDEO) { quality = mappedQuality })
+                            } else if (!link.contains("hubcloud")) {
+                                loadExtractor(link, subtitleCallback, callback)
+                            }
+                        }
+                    } else {
+                        // Fallback if no specific hubcloud.php link is found
+                        val validLinks = hcDoc.select("a").mapNotNull { it.attr("abs:href") }.filter { it.startsWith("http") }
+                        for (link in validLinks) {
+                            if (link.contains("r2.dev") || link.contains("cloudflare") || link.contains("worker")) {
+                                callback.invoke(newExtractorLink(this.name, "HubCloud Direct", link, ExtractorLinkType.VIDEO) { quality = mappedQuality })
+                            } else if (!link.contains("hubcloud")) {
+                                loadExtractor(link, subtitleCallback, callback)
+                            }
+                        }
+                    }
+                } catch (e: Exception) {}
+            }
+
+            if (url.startsWith("http")) {
+                if (url.contains("savelinks", true)) {
+                    try {
+                        val slDoc = app.get(url, headers = ua, timeout = 60).document
+                        slDoc.select("a").mapNotNull { it.attr("abs:href") }.forEach { slUrl ->
+                            if (slUrl.contains("gdflix", true)) {
+                                processGdflix(slUrl)
+                            } else if (slUrl.contains("hubcloud", true)) {
+                                processHubcloud(slUrl)
+                            } else {
+                                loadExtractor(slUrl, subtitleCallback, callback)
+                            }
+                        }
+                    } catch (e: Exception) {}
+                } else if (url.contains("gdflix", true)) {
+                    processGdflix(url)
+                } else if (url.contains("hubcloud", true)) {
+                    processHubcloud(url)
+                } else {
+                    loadExtractor(url, subtitleCallback, callback)
+                }
+            }
+        }
+        return true
+    }
+}
