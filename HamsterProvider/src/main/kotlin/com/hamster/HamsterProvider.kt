@@ -161,18 +161,68 @@ class HamsterProvider : CsxApi() {
 
                 val type = if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
 
-                callback.invoke(
-                    newExtractorLink(
-                        this.name,
-                        qualityName,
-                        streamUrl,
-                        type
-                    ) {
-                        quality = qualityValue
-                        headers = mapOf("Referer" to "https://xhamster.com")
+                if (isM3u8) {
+                    // Manually fetch and parse the m3u8 master playlist so the user sees explicit 1080p, 720p options
+                    try {
+                        val m3u8Content = app.get(streamUrl, headers = mapOf("Referer" to "https://xhamster.com")).text
+                        var currentQuality = Qualities.Unknown.value
+                        var currentQualityName = "HLS Stream"
+                        
+                        m3u8Content.lines().forEach { line ->
+                            val l = line.trim()
+                            if (l.startsWith("#EXT-X-STREAM-INF")) {
+                                val resMatch = Regex("RESOLUTION=\\d+x(\\d+)").find(l)
+                                if (resMatch != null) {
+                                    val q = resMatch.groupValues[1].toIntOrNull() ?: 0
+                                    currentQualityName = "${q}p"
+                                    currentQuality = when (q) {
+                                        2160 -> Qualities.P2160.value
+                                        1080 -> Qualities.P1080.value
+                                        720 -> Qualities.P720.value
+                                        480 -> Qualities.P480.value
+                                        360 -> Qualities.P360.value
+                                        240 -> 240
+                                        144 -> 144
+                                        else -> Qualities.Unknown.value
+                                    }
+                                }
+                            } else if (l.isNotEmpty() && !l.startsWith("#")) {
+                                var subUrl = l
+                                if (!subUrl.startsWith("http")) {
+                                    val baseUrl = streamUrl.substringBeforeLast("/")
+                                    subUrl = "$baseUrl/$subUrl"
+                                }
+                                callback.invoke(
+                                    newExtractorLink(
+                                        this.name,
+                                        currentQualityName,
+                                        subUrl,
+                                        ExtractorLinkType.M3U8
+                                    ) {
+                                        quality = currentQuality
+                                        headers = mapOf("Referer" to "https://xhamster.com")
+                                    }
+                                )
+                                found = true
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
-                )
-                found = true
+                } else {
+                    callback.invoke(
+                        newExtractorLink(
+                            this.name,
+                            qualityName,
+                            streamUrl,
+                            type
+                        ) {
+                            quality = qualityValue
+                            headers = mapOf("Referer" to "https://xhamster.com")
+                        }
+                    )
+                    found = true
+                }
             }
             return found
         } catch (e: Exception) {
