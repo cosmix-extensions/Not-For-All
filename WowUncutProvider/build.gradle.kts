@@ -5,6 +5,7 @@ cosmix {
     authors = listOf("cosmix-extensions")
     language = "hi"
     tvTypes = listOf("TvSeries", "Movie", "Others")
+    iconUrl = "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://wowuncut.com/&size=128"
 }
 
 android {
