@@ -42,4 +42,5 @@ jobs:
         with:
           branch: builds
           folder: build
-          clean: true
+          clean: false
+          token: ${{ secrets.GITHUB_TOKEN }}
