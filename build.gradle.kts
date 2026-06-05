@@ -14,9 +14,9 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:9.1.1")
+        classpath("com.android.tools.build:gradle:9.2.1")
         classpath("com.github.cosmix-app:cosmix-gradle-plugin:1.0.0")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.21")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.0")
     }
 }
 
@@ -67,7 +67,7 @@ subprojects {
         }
 
         lint {
-
+            targetSdk = 36
         }
 
         compileOptions {
