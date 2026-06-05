@@ -9,7 +9,7 @@
             "cosmix-extensions"
         ],
         "description": "xHamster - Free Porn Videos & XXX Movies",
-        "fileSize": 25853,
+        "fileSize": 26019,
         "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
         "language": "en",
         "tvTypes": [
@@ -17,10 +17,10 @@
         ],
         "iconUrl": "https://static-ah.xhcdn.com/xh-desktop/images/favicon/favicon-v2-128x128.png",
         "apiVersion": 1,
-        "fileHash": "sha256-8e17ba9c6ea78751d5739563177347abc361abf4f07bb95fc45ef11f58b176a9",
-        "jarFileSize": 38910,
+        "fileHash": "sha256-7b8edd3f529da15299a74ad406ca0a672f670ba03f34df510de784448f108e1b",
+        "jarFileSize": 39024,
         "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/HamsterProvider.jar",
-        "jarHash": "sha256-1a5800f85b132f5ff8dd34ceb33fe72b1e005e09bbebe2f8633f06dc9bc1fc8f"
+        "jarHash": "sha256-c628c76a10c5594907f5bf94fb080c0f267b6e7b5210fec051ea3c6704226766"
     },
     {
         "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/MlsbdProvider.csx",
