@@ -1,0 +1,157 @@
+package com.hamster
+
+import com.cosmix.app.*
+import com.cosmix.app.utils.*
+import org.jsoup.Jsoup
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+
+class HamsterProvider : CsxApi() {
+    override var mainUrl = "https://xhamster.com"
+    override var name = "Hamster"
+    override var lang = "en"
+    override val hasMainPage = true
+    override val supportedTypes = setOf(TvType.Movie, TvType.NSFW)
+
+    private val ua = mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    private val mapper = jacksonObjectMapper()
+
+    override val mainPage = mainPageOf(
+        "$mainUrl/channels/mylf/videos" to "MYLF",
+        "$mainUrl/channels/brazzers/videos" to "Brazzers",
+        "$mainUrl/channels/propertysex/videos" to "Property Sex",
+        "$mainUrl/categories/hd-videos" to "HD Videos",
+        "$mainUrl/categories/stepmom" to "Step Mom",
+        "$mainUrl/categories/stepson" to "Step Son",
+        "$mainUrl/categories/stepdaughter" to "Step Daughter",
+        "$mainUrl/categories/japanese" to "Japanese",
+        "$mainUrl/categories/hentai" to "Hentai"
+    )
+
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val url = if (page > 1) "${request.data}/$page" else request.data
+        val html = app.get(url, headers = ua).text
+        val videos = extractVideosFromInitials(html)
+        return newHomePageResponse(request.name, videos)
+    }
+
+    override suspend fun search(query: String): List<SearchResponse> {
+        val url = "$mainUrl/search?q=${query.replace(" ", "+")}"
+        val html = app.get(url, headers = ua).text
+        return extractVideosFromInitials(html)
+    }
+
+    private fun extractVideosFromInitials(html: String): List<SearchResponse> {
+        val list = mutableListOf<SearchResponse>()
+        val regex = Regex("""window\.initials=(\{.*?\});?</script>""")
+        val match = regex.find(html) ?: return list
+
+        val jsonStr = match.groupValues[1]
+        try {
+            val root = mapper.readTree(jsonStr)
+            
+            // On search or category pages, videos are usually in relatedVideosComponent or similar
+            // But let's safely traverse to find videoThumbProps
+            fun findVideoProps(node: com.fasterxml.jackson.databind.JsonNode) {
+                if (node.isObject) {
+                    if (node.has("videoThumbProps") && node.get("videoThumbProps").isArray) {
+                        for (videoNode in node.get("videoThumbProps")) {
+                            val title = videoNode.get("title")?.asText() ?: continue
+                            val url = videoNode.get("pageURL")?.asText() ?: continue
+                            val poster = videoNode.get("thumbURL")?.asText() ?: videoNode.get("imageURL")?.asText()
+                            
+                            list.add(
+                                newMovieSearchResponse(title, url, TvType.NSFW) {
+                                    this.posterUrl = poster
+                                }
+                            )
+                        }
+                    } else {
+                        node.fields().forEach { findVideoProps(it.value) }
+                    }
+                } else if (node.isArray) {
+                    node.forEach { findVideoProps(it) }
+                }
+            }
+
+            findVideoProps(root)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Deduplicate
+        return list.distinctBy { it.url }
+    }
+
+    override suspend fun load(url: String): LoadResponse {
+        val html = app.get(url, headers = ua).text
+        val regex = Regex("""window\.initials=(\{.*?\});?</script>""")
+        val match = regex.find(html)
+
+        var title = "Unknown Title"
+        var poster: String? = null
+        var description: String? = null
+
+        if (match != null) {
+            try {
+                val root = mapper.readTree(match.groupValues[1])
+                val videoModel = root.get("videoModel")
+                if (videoModel != null) {
+                    title = videoModel.get("title")?.asText() ?: title
+                    poster = videoModel.get("thumbURL")?.asText() ?: videoModel.get("imageURL")?.asText()
+                    description = videoModel.get("description")?.asText()
+                }
+            } catch (e: Exception) { }
+        }
+
+        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+            this.posterUrl = poster
+            this.plot = description
+        }
+    }
+
+    override suspend fun loadLinks(data: String, isCasting: Boolean, callback: (ExtractorLink) -> Unit): Boolean {
+        val html = app.get(data, headers = ua).text
+        val document = Jsoup.parse(html)
+        
+        // Find the noscript video tag
+        val videoTag = document.selectFirst("video.player-container__no-script-video")
+        if (videoTag != null) {
+            val src = videoTag.attr("src")
+            if (src.isNotEmpty()) {
+                callback.invoke(
+                    ExtractorLink(
+                        name = "xHamster Direct",
+                        name = "xHamster Direct",
+                        url = src,
+                        referer = mainUrl,
+                        quality = Qualities.Unknown.value,
+                        isM3u8 = src.contains(".m3u8")
+                    )
+                )
+                return true
+            }
+        }
+        
+        // Fallback: look for any video source
+        val anySource = document.selectFirst("video source")
+        if (anySource != null) {
+            val src = anySource.attr("src")
+            if (src.isNotEmpty()) {
+                callback.invoke(
+                    ExtractorLink(
+                        name = "xHamster Source",
+                        name = "xHamster Source",
+                        url = src,
+                        referer = mainUrl,
+                        quality = Qualities.Unknown.value,
+                        isM3u8 = src.contains(".m3u8")
+                    )
+                )
+                return true
+            }
+        }
+
+        return false
+    }
+}

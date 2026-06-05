@@ -31,10 +31,12 @@ jobs:
           cp ViralLinksProvider/build/ViralLinksProvider.csx build/
           cp WowProvider/build/WowProvider.csx build/
           cp WowUncutProvider/build/WowUncutProvider.csx build/
+          cp HamsterProvider/build/HamsterProvider.csx build/
           cp MlsbdProvider/build/MlsbdProvider.jar build/
           cp ViralLinksProvider/build/ViralLinksProvider.jar build/
           cp WowProvider/build/WowProvider.jar build/
           cp WowUncutProvider/build/WowUncutProvider.jar build/
+          cp HamsterProvider/build/HamsterProvider.jar build/
           cp repo.json build/
 
       - name: Deploy to builds branch
