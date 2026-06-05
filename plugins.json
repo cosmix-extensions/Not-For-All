@@ -73,7 +73,7 @@
     },
     {
         "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowUncutProvider.csx",
-        "status": 3,
+        "status": 1,
         "version": 1,
         "name": "WowUncutProvider",
         "internalName": "WowUncutProvider",
@@ -91,6 +91,9 @@
         ],
         "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://wowuncut.com/&size=128",
         "apiVersion": 1,
-        "fileHash": "sha256-fce5903fd03e6d3511448abf8823b97d8f92b42c20a091630527b86d8253fc8f"
+        "fileHash": "sha256-fce5903fd03e6d3511448abf8823b97d8f92b42c20a091630527b86d8253fc8f",
+        "jarFileSize": 44685,
+        "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowUncutProvider.jar",
+        "jarHash": "sha256-a113579778a7ce6dd3a28f1ac7802e138af09219094028942439554076bc1b59"
     }
 ]
