@@ -34,10 +34,13 @@ class HamsterProvider : CsxApi() {
         return newHomePageResponse(request.name, videos)
     }
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val url = "$mainUrl/search?q=${query.replace(" ", "+")}"
+    override suspend fun search(query: String, page: Int): SearchResponseList? {
+        val q = java.net.URLEncoder.encode(query, "UTF-8").replace("+", "%20")
+        val url = if (page == 1) "$mainUrl/search?q=$q" else "$mainUrl/search?q=$q&p=$page"
         val html = app.get(url, headers = ua).text
-        return extractVideosFromInitials(html)
+        val items = extractVideosFromInitials(html)
+        val hasNext = items.isNotEmpty()
+        return newSearchResponseList(items, hasNext)
     }
 
     private fun extractVideosFromInitials(html: String): List<SearchResponse> {
@@ -110,7 +113,7 @@ class HamsterProvider : CsxApi() {
         }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, callback: (ExtractorLink) -> Unit): Boolean {
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         val html = app.get(data, headers = ua).text
         val document = Jsoup.parse(html)
         
@@ -120,14 +123,14 @@ class HamsterProvider : CsxApi() {
             val src = videoTag.attr("src")
             if (src.isNotEmpty()) {
                 callback.invoke(
-                    ExtractorLink(
-                        name = "xHamster Direct",
-                        name = "xHamster Direct",
-                        url = src,
-                        referer = mainUrl,
-                        quality = Qualities.Unknown.value,
-                        isM3u8 = src.contains(".m3u8")
-                    )
+                    newExtractorLink(
+                        "xHamster Direct",
+                        "xHamster Direct",
+                        src,
+                        ExtractorLinkType.VIDEO
+                    ) {
+                        quality = Qualities.Unknown.value
+                    }
                 )
                 return true
             }
@@ -139,14 +142,14 @@ class HamsterProvider : CsxApi() {
             val src = anySource.attr("src")
             if (src.isNotEmpty()) {
                 callback.invoke(
-                    ExtractorLink(
-                        name = "xHamster Source",
-                        name = "xHamster Source",
-                        url = src,
-                        referer = mainUrl,
-                        quality = Qualities.Unknown.value,
-                        isM3u8 = src.contains(".m3u8")
-                    )
+                    newExtractorLink(
+                        "xHamster Source",
+                        "xHamster Source",
+                        src,
+                        ExtractorLinkType.VIDEO
+                    ) {
+                        quality = Qualities.Unknown.value
+                    }
                 )
                 return true
             }

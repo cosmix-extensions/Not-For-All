@@ -1,7 +1,7 @@
 package com.hamster
 
-import app.cosmix.gradle.CsxPluginAnnotation
 import com.cosmix.app.plugins.CsxPlugin
+import com.cosmix.app.plugins.CsxPluginAnnotation
 import android.content.Context
 
 @CsxPluginAnnotation
