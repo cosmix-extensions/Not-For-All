@@ -1,6 +1,6 @@
+package com.wow
 import com.cosmix.app.plugins.CsxPlugin
 import com.cosmix.app.plugins.CsxPluginAnnotation
-package com.wow
 
 
 @CsxPluginAnnotation

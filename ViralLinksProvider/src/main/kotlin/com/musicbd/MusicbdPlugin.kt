@@ -1,6 +1,6 @@
+package com.musicbd
 import com.cosmix.app.plugins.CsxPlugin
 import com.cosmix.app.plugins.CsxPluginAnnotation
-package com.musicbd
 
 
 @CsxPluginAnnotation
