@@ -1,0 +1,95 @@
+[
+    {
+        "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/MlsbdProvider.csx",
+        "status": 1,
+        "version": 2,
+        "name": "MlsbdProvider",
+        "internalName": "MlsbdProvider",
+        "authors": [
+            "cosmix-extensions"
+        ],
+        "description": "MLSBD Movies and Series",
+        "fileSize": 53676,
+        "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
+        "language": "en",
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "Anime"
+        ],
+        "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://mlsbd.co/&size=128",
+        "apiVersion": 1,
+        "fileHash": "sha256-4be94eeb16548aa88a40d3f389205874bf3dc1cdca926eceee1389ef1dcd84aa",
+        "jarFileSize": 92514,
+        "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/MlsbdProvider.jar",
+        "jarHash": "sha256-6b094c932642cd12e332f175476870cce17fad399f8c6742ad77f006e246634f"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/ViralLinksProvider.csx",
+        "status": 1,
+        "version": 1,
+        "name": "ViralLinksProvider",
+        "internalName": "ViralLinksProvider",
+        "authors": [
+            "cosmix-extensions"
+        ],
+        "description": "ViralLinksProvider",
+        "fileSize": 24392,
+        "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
+        "language": "en",
+        "tvTypes": [
+            "TvSeries",
+            "Movie"
+        ],
+        "iconUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhQvNXfZt7ctszD6Fy_FwU7NfcyxIEZ6uW6asTw_5cMPS38hkm65bQdzb2bCD-86XfOUVmp5xjOANaefT4ZdWSCf_picqYtsAN5McX_3gVEfdVa5EA4h9e2noiaNLwUhMK8VaGx1mQGI_7TCnpmEI3LxtgNPeVpKsojjSbqSZh50VbyrTiP7_2KOIusBBsC/s1024/1000073990.png",
+        "apiVersion": 1,
+        "fileHash": "sha256-7276c5cf3f3a14e89baf98622396bbff625551cc48acb7a7ef7b7a4dc7a5a272",
+        "jarFileSize": 41210,
+        "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/ViralLinksProvider.jar",
+        "jarHash": "sha256-d289f1fea0f10bce044b7d50c7fad1c2ef4bec2323428c73c3a02d627e31e976"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowProvider.csx",
+        "status": 1,
+        "version": 4,
+        "name": "WowProvider",
+        "internalName": "WowProvider",
+        "authors": [
+            "cosmix-extensions"
+        ],
+        "description": "Only NSFW Movies Avalibale",
+        "fileSize": 31211,
+        "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
+        "language": "en",
+        "tvTypes": [
+            "Movie"
+        ],
+        "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.wow.xxx/&size=128",
+        "apiVersion": 1,
+        "fileHash": "sha256-81c053f8434d192618e61c12e8ad136d7901cf7aaaf913bd682ebe49a25b380b",
+        "jarFileSize": 48731,
+        "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowProvider.jar",
+        "jarHash": "sha256-6fb6780c3a3a97ed54f67e92a9bd715c29f738a09c9d0fb65008e454e9cba878"
+    },
+    {
+        "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowUncutProvider.csx",
+        "status": 3,
+        "version": 1,
+        "name": "WowUncutProvider",
+        "internalName": "WowUncutProvider",
+        "authors": [
+            "cosmix-extensions"
+        ],
+        "description": "WowUncut - Hindi, Bengali, Tamil & More Web Series",
+        "fileSize": 25492,
+        "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
+        "language": "hi",
+        "tvTypes": [
+            "TvSeries",
+            "Movie",
+            "Others"
+        ],
+        "apiVersion": 1,
+        "fileHash": "sha256-9e5ef7956e3b1763b637e385c8a6e63db28b9eddad465e346fd2780a4c38d514"
+    }
+]
