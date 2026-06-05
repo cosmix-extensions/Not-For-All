@@ -119,13 +119,13 @@ class HamsterProvider : CsxApi() {
             
             // Extract .mp4 and .m3u8 stream sources using regex
             // xHamster places raw links in `<video>` inside `<noscript>` tags which Jsoup ignores.
-            val matcher = java.util.regex.Pattern.compile("https?:\\\\/\\\\/[^\"'\\\\s]+?\\\\.(?:mp4|m3u8)[^\"'\\\\s]*").matcher(html)
+            val matches = Regex("""https?://[^"'\s]+?\.(?:mp4|m3u8)[^"'\s]*""").findAll(html)
             
             var found = false
             val addedUrls = mutableSetOf<String>()
             
-            while (matcher.find()) {
-                var streamUrl = matcher.group()
+            for (match in matches) {
+                var streamUrl = match.value
                 if (streamUrl.contains("\\/")) {
                     streamUrl = streamUrl.replace("\\/", "/")
                 }
