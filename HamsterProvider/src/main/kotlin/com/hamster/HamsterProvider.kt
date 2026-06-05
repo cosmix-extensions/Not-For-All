@@ -10,7 +10,7 @@ class HamsterProvider : CsxApi() {
     override var name = "Hamster"
     override var lang = "en"
     override val hasMainPage = true
-    override val supportedTypes = setOf(TvType.Movie, TvType.NSFW)
+    override val supportedTypes = setOf(TvType.Movie)
 
     private val ua = mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     private val mapper = jacksonObjectMapper()
@@ -63,7 +63,7 @@ class HamsterProvider : CsxApi() {
                             val poster = videoNode.get("thumbURL")?.asText() ?: videoNode.get("imageURL")?.asText()
                             
                             list.add(
-                                newMovieSearchResponse(title, url, TvType.NSFW) {
+                                newMovieSearchResponse(title, url, TvType.Movie) {
                                     this.posterUrl = poster
                                 }
                             )
@@ -107,7 +107,7 @@ class HamsterProvider : CsxApi() {
             } catch (e: Exception) { }
         }
 
-        return newMovieLoadResponse(title, url, TvType.NSFW, url) {
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = description
         }
