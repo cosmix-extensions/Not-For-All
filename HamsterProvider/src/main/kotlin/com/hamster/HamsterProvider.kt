@@ -16,19 +16,37 @@ class HamsterProvider : CsxApi() {
     private val mapper = jacksonObjectMapper()
 
     override val mainPage = mainPageOf(
-        "$mainUrl/channels/mylf/videos" to "MYLF",
-        "$mainUrl/channels/brazzers/videos" to "Brazzers",
-        "$mainUrl/channels/propertysex/videos" to "Property Sex",
-        "$mainUrl/categories/hd-videos" to "HD Videos",
-        "$mainUrl/categories/stepmom" to "Step Mom",
-        "$mainUrl/categories/stepson" to "Step Son",
-        "$mainUrl/categories/stepdaughter" to "Step Daughter",
+        "$mainUrl/" to "Home",
+        "$mainUrl/categories/indian" to "Indian",
+        "$mainUrl/categories/american" to "American",
         "$mainUrl/categories/japanese" to "Japanese",
-        "$mainUrl/categories/hentai" to "Hentai"
+        "$mainUrl/users/goddesmahi/videos" to "Goddesmahi",
+        "$mainUrl/users/biindastimes/videos" to "Biindastimes",
+        "$mainUrl/creators/saanvi-bahl/newest" to "Saanvi Bahl",
+        "$mainUrl/users/cineflixmedia/videos" to "Cineflixmedia",
+        "$mainUrl/creators/your-priya/newest" to "Your Priya",
+        "$mainUrl/channels/my-porn-king" to "My Porn King",
+        "$mainUrl/pornstars/tejashwini" to "Tejashwini",
+        "$mainUrl/creators/starsudipa/newest" to "Starsudipa",
+        "$mainUrl/4k?formatFrozen=1" to "4K",
+        "$mainUrl/hd?formatFrozen=1" to "HD",
+        "$mainUrl/categories/russian/4k" to "Russian 4K",
+        "$mainUrl/categories/desi/4k" to "Desi 4K",
+        "$mainUrl/categories/mom/4k" to "Mom 4K"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (page > 1) "${request.data}/$page" else request.data
+        val url = if (page > 1) {
+            val base = request.data.removeSuffix("/")
+            if (base.contains("?")) {
+                val parts = base.split("?")
+                "${parts[0]}/$page?${parts[1]}"
+            } else {
+                "$base/$page"
+            }
+        } else {
+            request.data
+        }
         val html = app.get(url, headers = ua).text
         val videos = extractVideosFromInitials(html)
         return newHomePageResponse(request.name, videos)
