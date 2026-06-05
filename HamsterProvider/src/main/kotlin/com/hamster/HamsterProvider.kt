@@ -114,47 +114,65 @@ class HamsterProvider : CsxApi() {
     }
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        val html = app.get(data, headers = ua).text
-        val document = Jsoup.parse(html)
-        
-        // Find the noscript video tag
-        val videoTag = document.selectFirst("video.player-container__no-script-video")
-        if (videoTag != null) {
-            val src = videoTag.attr("src")
-            if (src.isNotEmpty()) {
-                callback.invoke(
-                    newExtractorLink(
-                        "xHamster Direct",
-                        "xHamster Direct",
-                        src,
-                        ExtractorLinkType.VIDEO
-                    ) {
-                        quality = Qualities.Unknown.value
+        try {
+            val html = app.get(data, headers = ua).text
+            
+            // Extract .mp4 and .m3u8 stream sources using regex
+            // xHamster places raw links in `<video>` inside `<noscript>` tags which Jsoup ignores.
+            val matcher = java.util.regex.Pattern.compile("https?:\\\\/\\\\/[^\"'\\\\s]+?\\\\.(?:mp4|m3u8)[^\"'\\\\s]*").matcher(html)
+            
+            var found = false
+            val addedUrls = mutableSetOf<String>()
+            
+            while (matcher.find()) {
+                var streamUrl = matcher.group()
+                if (streamUrl.contains("\\/")) {
+                    streamUrl = streamUrl.replace("\\/", "/")
+                }
+                
+                if (addedUrls.contains(streamUrl)) continue
+                addedUrls.add(streamUrl)
+                
+                val isM3u8 = streamUrl.contains(".m3u8")
+                
+                // Determine quality
+                val qualityMatch = Regex("(\\d{3,4})p").find(streamUrl)
+                var qualityValue = Qualities.Unknown.value
+                var qualityName = if (isM3u8) "HLS Stream" else "Direct Stream"
+                
+                if (qualityMatch != null) {
+                    val q = qualityMatch.groupValues[1].toIntOrNull() ?: 0
+                    qualityName = "${q}p"
+                    qualityValue = when (q) {
+                        1080 -> Qualities.P1080.value
+                        720 -> Qualities.P720.value
+                        480 -> Qualities.P480.value
+                        360 -> Qualities.P360.value
+                        240 -> 240
+                        144 -> 144
+                        else -> Qualities.Unknown.value
                     }
-                )
-                return true
-            }
-        }
-        
-        // Fallback: look for any video source
-        val anySource = document.selectFirst("video source")
-        if (anySource != null) {
-            val src = anySource.attr("src")
-            if (src.isNotEmpty()) {
-                callback.invoke(
-                    newExtractorLink(
-                        "xHamster Source",
-                        "xHamster Source",
-                        src,
-                        ExtractorLinkType.VIDEO
-                    ) {
-                        quality = Qualities.Unknown.value
-                    }
-                )
-                return true
-            }
-        }
+                }
 
+                val type = if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+
+                callback.invoke(
+                    newExtractorLink(
+                        this.name,
+                        qualityName,
+                        streamUrl,
+                        type
+                    ) {
+                        quality = qualityValue
+                    }
+                )
+                found = true
+            }
+            return found
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        
         return false
     }
 }
