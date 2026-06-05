@@ -169,6 +169,7 @@ class HamsterProvider : CsxApi() {
                         type
                     ) {
                         quality = qualityValue
+                        headers = mapOf("Referer" to "https://xhamster.com")
                     }
                 )
                 found = true
