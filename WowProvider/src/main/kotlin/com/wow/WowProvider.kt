@@ -133,7 +133,7 @@ class WowProvider : CsxApi() {
     override suspend fun quickSearch(query: String): List<SearchResponse>? {
         // We use the standard search to return actual playable videos in the dropdown
         // instead of text suggestions, because clicking text suggestions in Cosmix crashes the player.
-        return search(query, 1)?.take(5)
+        return search(query, 1)?.items?.take(5)
     }
 
     override suspend fun load(url: String): LoadResponse {
