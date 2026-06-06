@@ -130,6 +130,12 @@ class WowProvider : CsxApi() {
         return newSearchResponseList(items, hasNext)
     }
 
+    override suspend fun quickSearch(query: String): List<SearchResponse>? {
+        // We use the standard search to return actual playable videos in the dropdown
+        // instead of text suggestions, because clicking text suggestions in Cosmix crashes the player.
+        return search(query, 1)?.take(5)
+    }
+
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = ua, timeout = 60).document
         val title = doc.title().trim().replace(" - wow.xxx", "", true).trim()
