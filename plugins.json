@@ -23,29 +23,6 @@
         "jarHash": "sha256-73238c6210467fe26475be493bf124f95595ab6c7ed3d95c531bd3ea394db201"
     },
     {
-        "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/Mat6tubeProvider.csx",
-        "status": 1,
-        "version": 1,
-        "name": "Mat6tubeProvider",
-        "internalName": "Mat6tubeProvider",
-        "authors": [
-            "cosmix-extensions"
-        ],
-        "description": "mat6tube.com - Free Porn & XXX Movies Tube",
-        "fileSize": 27610,
-        "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
-        "language": "en",
-        "tvTypes": [
-            "Movie"
-        ],
-        "iconUrl": "https://mat6tube.com/static/extend/dark/favicon.ico",
-        "apiVersion": 1,
-        "fileHash": "sha256-a3f3955976d3c97b061795ca3cbcb267743a0a47c63aa3123f09cdf1a8284ae8",
-        "jarFileSize": 42518,
-        "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/Mat6tubeProvider.jar",
-        "jarHash": "sha256-e048549dbde61f829e411ec2d6ac9d4b31bc2800daf8d52f9bbdb6c6c2243502"
-    },
-    {
         "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/MlsbdProvider.csx",
         "status": 1,
         "version": 2,
