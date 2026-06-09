@@ -26,13 +26,16 @@ class HamsterProvider : CsxApi() {
         "$mainUrl/users/cineflixmedia/videos" to "Cineflixmedia",
         "$mainUrl/creators/your-priya/newest" to "Your Priya",
         "$mainUrl/channels/my-porn-king" to "My Porn King",
+        "$mainUrl/channels/raptor-llc" to "Raptor Llc",
         "$mainUrl/pornstars/tejashwini" to "Tejashwini",
         "$mainUrl/creators/starsudipa/newest" to "Starsudipa",
         "$mainUrl/4k?formatFrozen=1" to "4K",
         "$mainUrl/hd?formatFrozen=1" to "HD",
         "$mainUrl/categories/russian/4k" to "Russian 4K",
         "$mainUrl/categories/desi/4k" to "Desi 4K",
-        "$mainUrl/categories/mom/4k" to "Mom 4K"
+        "$mainUrl/categories/mom/4k" to "Mom 4K",
+        "$mainUrl/tags/h-anime" to "H Anime",
+        "$mainUrl/categories/hentai" to "Hentai"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {

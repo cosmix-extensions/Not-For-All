@@ -1,4 +1,4 @@
-version = 8
+version = 9
 
 cosmix {
     setRepo(System.getenv("GITHUB_REPOSITORY") ?: "https://github.com/cosmix-extensions/Not-For-All")
