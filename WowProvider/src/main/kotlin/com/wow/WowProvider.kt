@@ -72,7 +72,23 @@ class WowProvider : CsxApi() {
         "$mainUrl/sites/dad-crush/most-popular/" to "Dad Crush - Most Popular",
         "$mainUrl/sites/dad-crush/top-rated/" to "Dad Crush - Top Rated",
         "$mainUrl/sites/my-dirty-uncle/latest-updates/" to "My Dirty Uncle - Latest Updates",
-        "$mainUrl/sites/my-dirty-uncle/most-popular/" to "My Dirty Uncle - Most Popular"
+        "$mainUrl/sites/my-dirty-uncle/most-popular/" to "My Dirty Uncle - Most Popular",
+        "$mainUrl/models/eliza-ibarra/latest-updates/" to "Eliza Ibarra - Latest Updates",
+        "$mainUrl/models/eliza-ibarra/" to "Eliza Ibarra",
+        "$mainUrl/models/emily-willis/latest-updates/" to "Emily Willis - Latest Updates",
+        "$mainUrl/models/emily-willis/" to "Emily Willis",
+        "$mainUrl/models/danny-d/latest-updates/" to "Danny D - Latest Updates",
+        "$mainUrl/models/danny-d/" to "Danny D",
+        "$mainUrl/models/xander-corvus/latest-updates/" to "Xander Corvus - Latest Updates",
+        "$mainUrl/models/xander-corvus/" to "Xander Corvus",
+        "$mainUrl/models/jordi-el-ni%C3%B1o-polla/latest-updates/" to "Jordi El Niño Polla - Latest Updates",
+        "$mainUrl/models/jordi-el-ni%C3%B1o-polla/" to "Jordi El Niño Polla",
+        "$mainUrl/models/keiran-lee/latest-updates/" to "Keiran Lee - Latest Updates",
+        "$mainUrl/models/keiran-lee/" to "Keiran Lee",
+        "$mainUrl/models/valentina-nappi/latest-updates/" to "Valentina Nappi - Latest Updates",
+        "$mainUrl/models/valentina-nappi/" to "Valentina Nappi",
+        "$mainUrl/models/violet-myers/latest-updates/" to "Violet Myers - Latest Updates",
+        "$mainUrl/models/violet-myers/" to "Violet Myers"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
