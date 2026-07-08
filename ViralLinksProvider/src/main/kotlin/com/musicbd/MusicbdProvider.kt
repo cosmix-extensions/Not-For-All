@@ -154,7 +154,7 @@ class MusicbdProvider : CsxApi() {
         }
     }
 
-    override suspend fun loadLinks(
+        override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
@@ -162,16 +162,32 @@ class MusicbdProvider : CsxApi() {
     ): Boolean {
         if (data.isBlank() || !data.contains("filedownload")) return false
 
-        callback.invoke(
-            newExtractorLink(
-                this.name,
-                "Direct Stream",
-                data,
-                ExtractorLinkType.VIDEO
-            ) {
-                quality = Qualities.Unknown.value
+        try {
+            // Fetching the page to extract the final direct stream URL
+            val doc = app.get(data, headers = ua).document
+            val finalA = doc.selectFirst("a[href*=filedownload]")
+            
+            if (finalA != null) {
+                var finalUrl = finalA.attr("href").trim()
+                if (finalUrl.startsWith("//")) {
+                    finalUrl = "https:$finalUrl"
+                }
+
+                callback.invoke(
+                    newExtractorLink(
+                        this.name,
+                        "Direct Stream",
+                        finalUrl, // Sending the extracted final URL, not the raw 'data'
+                        ExtractorLinkType.VIDEO
+                    ) {
+                        quality = Qualities.Unknown.value
+                    }
+                )
+                return true
             }
-        )
-        return true
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return false
     }
-}
