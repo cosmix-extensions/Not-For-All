@@ -25,7 +25,6 @@ class MusicbdProvider : CsxApi() {
         ".gif"
     )
 
-    // Upgrade Blogger CDN image from small size to high quality
     private fun upgradeBloggerImageSize(url: String): String {
         return url.replace(Regex("/s\\d+/"), "/s1600/")
     }
@@ -35,30 +34,76 @@ class MusicbdProvider : CsxApi() {
         return excludedSrcs.none { src.contains(it) }
     }
 
-    // Main page uses site-0.html for consistent pagination
+    // Extract numeric ID from /page-download/10388/... → "10388"
+    private fun extractId(href: String): String {
+        return href.split("/page-download/")
+            .getOrNull(1)
+            ?.split("/")
+            ?.firstOrNull()
+            ?: ""
+    }
+
     override val mainPage = mainPageOf(
         "$mainUrl/site-0.html" to "Latest"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // Correct pagination: site-0.html?to-page=N
-        val url = if (page == 1) request.data else "${request.data}?to-page=$page"
-        val doc = app.get(url, headers = ua).document
+        val listUrl = if (page == 1) request.data else "${request.data}?to-page=$page"
+        val listDoc = app.get(listUrl, headers = ua).document
 
-        // Main page uses div.catlistblock — no images here, only text links
-        val items = doc.select("div.catlistblock").mapNotNull { block ->
-            val a = block.selectFirst("a[href*=/page-download/]") ?: return@mapNotNull null
-            var href = a.attr("href").trim()
+        // Main page is text-only — collect all download links
+        val linkElements = listDoc.select("div.catlistblock a[href*=/page-download/]")
+        if (linkElements.isEmpty()) return newHomePageResponse(request.name, emptyList(), false)
+
+        // Build poster map: video ID → poster URL
+        // Strategy: fetch the first video page, get its own poster + related files posters
+        val posterMap = mutableMapOf<String, String?>()
+
+        val firstHref = linkElements.first()?.attr("href")?.trim() ?: ""
+        if (firstHref.isNotBlank()) {
+            val firstUrl = if (firstHref.startsWith("/")) "$mainUrl$firstHref" else firstHref
+            val firstDoc = runCatching { app.get(firstUrl, headers = ua).document }.getOrNull()
+
+            if (firstDoc != null) {
+                // Poster of the first video itself
+                val ownPoster = (
+                    firstDoc.select("div.thumb img") +
+                    firstDoc.select("div.finfo img") +
+                    firstDoc.select("img[alt][title][src*=blogger.googleusercontent.com]")
+                )
+                    .map { it.attr("src").trim() }
+                    .firstOrNull { isValidPoster(it) }
+                    ?.let { upgradeBloggerImageSize(it) }
+
+                val firstId = extractId(firstHref)
+                if (firstId.isNotBlank()) posterMap[firstId] = ownPoster
+
+                // Posters of related files (div.updates contains ~10 recent items with images)
+                firstDoc.select("div.updates div.itemlist").forEach { item ->
+                    val href = item.selectFirst("a")?.attr("href")?.trim() ?: return@forEach
+                    val id = extractId(href)
+                    if (id.isBlank()) return@forEach
+                    val poster = item.selectFirst("img[src*=blogger]")
+                        ?.attr("src")?.trim()
+                        ?.takeIf { isValidPoster(it) }
+                        ?.let { upgradeBloggerImageSize(it) }
+                    posterMap[id] = poster
+                }
+            }
+        }
+
+        val items = linkElements.mapNotNull { el ->
+            var href = el.attr("href").trim()
             if (href.isBlank()) return@mapNotNull null
+            val id = extractId(href)
             if (href.startsWith("/")) href = "$mainUrl$href"
 
-            val title = a.text().trim().ifBlank {
+            val title = el.text().trim().ifBlank {
                 href.split("/").last().replace(".html", "").replace("-", " ")
             }
 
-            // No poster on listing page — CloudStream shows placeholder
             newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = null
+                this.posterUrl = posterMap[id]
             }
         }
 
@@ -67,24 +112,54 @@ class MusicbdProvider : CsxApi() {
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
         val encoded = java.net.URLEncoder.encode(query, "UTF-8")
-        // Correct search URL from the site's form action
         val url = if (page == 1) "$mainUrl/site-1.html?to-search=$encoded"
                   else "$mainUrl/site-1.html?to-search=$encoded&to-page=$page"
         val doc = app.get(url, headers = ua).document
 
-        // Search page also uses div.catlistblock same as main page
-        val items = doc.select("div.catlistblock").mapNotNull { block ->
-            val a = block.selectFirst("a[href*=/page-download/]") ?: return@mapNotNull null
-            var href = a.attr("href").trim()
+        val linkElements = doc.select("div.catlistblock a[href*=/page-download/]")
+        val posterMap = mutableMapOf<String, String?>()
+
+        // Same strategy: fetch first result's page for posters
+        val firstHref = linkElements.first()?.attr("href")?.trim() ?: ""
+        if (firstHref.isNotBlank()) {
+            val firstUrl = if (firstHref.startsWith("/")) "$mainUrl$firstHref" else firstHref
+            val firstDoc = runCatching { app.get(firstUrl, headers = ua).document }.getOrNull()
+            if (firstDoc != null) {
+                val ownPoster = (
+                    firstDoc.select("div.thumb img") +
+                    firstDoc.select("div.finfo img")
+                )
+                    .map { it.attr("src").trim() }
+                    .firstOrNull { isValidPoster(it) }
+                    ?.let { upgradeBloggerImageSize(it) }
+                val firstId = extractId(firstHref)
+                if (firstId.isNotBlank()) posterMap[firstId] = ownPoster
+
+                firstDoc.select("div.updates div.itemlist").forEach { item ->
+                    val href = item.selectFirst("a")?.attr("href")?.trim() ?: return@forEach
+                    val id = extractId(href)
+                    if (id.isBlank()) return@forEach
+                    val poster = item.selectFirst("img[src*=blogger]")
+                        ?.attr("src")?.trim()
+                        ?.takeIf { isValidPoster(it) }
+                        ?.let { upgradeBloggerImageSize(it) }
+                    posterMap[id] = poster
+                }
+            }
+        }
+
+        val items = linkElements.mapNotNull { el ->
+            var href = el.attr("href").trim()
             if (href.isBlank()) return@mapNotNull null
+            val id = extractId(href)
             if (href.startsWith("/")) href = "$mainUrl$href"
 
-            val title = a.text().trim().ifBlank {
+            val title = el.text().trim().ifBlank {
                 href.split("/").last().replace(".html", "").replace("-", " ")
             }
 
             newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = null
+                this.posterUrl = posterMap[id]
             }
         }
 
@@ -98,8 +173,6 @@ class MusicbdProvider : CsxApi() {
         val title = doc.selectFirst("div.hh h2")?.text()?.trim()
             ?: doc.title().trim()
 
-        // Poster lives inside div.finfo > div.thumb > img
-        // The img has both alt and title set to the video name
         val poster = (
             doc.select("div.thumb img") +
             doc.select("div.finfo img") +
