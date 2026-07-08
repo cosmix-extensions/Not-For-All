@@ -57,7 +57,7 @@
             "cosmix-extensions"
         ],
         "description": "ViralLinksProvider",
-        "fileSize": 30602,
+        "fileSize": 32439,
         "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
         "language": "en",
         "tvTypes": [
@@ -66,10 +66,10 @@
         ],
         "iconUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhQvNXfZt7ctszD6Fy_FwU7NfcyxIEZ6uW6asTw_5cMPS38hkm65bQdzb2bCD-86XfOUVmp5xjOANaefT4ZdWSCf_picqYtsAN5McX_3gVEfdVa5EA4h9e2noiaNLwUhMK8VaGx1mQGI_7TCnpmEI3LxtgNPeVpKsojjSbqSZh50VbyrTiP7_2KOIusBBsC/s1024/1000073990.png",
         "apiVersion": 1,
-        "fileHash": "sha256-e9610ad92c2f59f7c3dd30b65d62913bf21c06fe5903d1b91802fd5836cdd9dc",
-        "jarFileSize": 66879,
+        "fileHash": "sha256-9752dafd382a7b5cf3a7429817f68fc008e09bc5fbbb0ade654defecd97265c1",
+        "jarFileSize": 69168,
         "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/ViralLinksProvider.jar",
-        "jarHash": "sha256-a8e80c59a1719427cd86efb3fae992ac57e10b6e221f358cb3c372690e994e74"
+        "jarHash": "sha256-d903439868e42ad49a5eb665fe39567c67d4803355ac860f84e8a7df84c89134"
     },
     {
         "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowProvider.csx",
