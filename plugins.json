@@ -32,7 +32,7 @@
             "cosmix-extensions"
         ],
         "description": "MLSBD Movies and Series",
-        "fileSize": 53676,
+        "fileSize": 53618,
         "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
         "language": "en",
         "tvTypes": [
@@ -40,9 +40,9 @@
             "Movie",
             "Anime"
         ],
-        "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://mlsbd.co/&size=128",
+        "iconUrl": "https://mlsbd.co/wp-content/uploads/2020/09/mlsbd-icon.png",
         "apiVersion": 1,
-        "fileHash": "sha256-4be94eeb16548aa88a40d3f389205874bf3dc1cdca926eceee1389ef1dcd84aa",
+        "fileHash": "sha256-a5186ae334d6f5348e58b801516b9f69625be415944585c61ba100af646700f6",
         "jarFileSize": 92514,
         "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/MlsbdProvider.jar",
         "jarHash": "sha256-6b094c932642cd12e332f175476870cce17fad399f8c6742ad77f006e246634f"
