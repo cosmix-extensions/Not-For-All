@@ -37,7 +37,6 @@ class MusicbdProvider : CsxApi() {
         return excludedSrcs.none { src.contains(it) }
     }
 
-    // Fetch poster from a single download page
     private suspend fun fetchPoster(url: String): String? {
         return runCatching {
             val doc = app.get(url, headers = ua).document
@@ -53,17 +52,21 @@ class MusicbdProvider : CsxApi() {
     }
 
     override val mainPage = mainPageOf(
-        "$mainUrl/site-0.html" to "Latest"
+        "$mainUrl/" to "Latest",
+        "$mainUrl/site-0.html" to "All Categories"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val listUrl = if (page == 1) request.data else "${request.data}?to-page=$page"
         val listDoc = app.get(listUrl, headers = ua).document
 
-        val linkElements = listDoc.select("div.catlistblock a[href*=/page-download/]")
+        var linkElements = listDoc.select("div.catlistblock a[href*=/page-download/]")
+        if (linkElements.isEmpty()) {
+            linkElements = listDoc.select("div.post a[href*=/page-download/]")
+        }
+        
         if (linkElements.isEmpty()) return newHomePageResponse(request.name, emptyList(), false)
 
-        // Fetch ALL video pages in parallel — no limit
         val items = coroutineScope {
             linkElements.map { el ->
                 async {
@@ -71,12 +74,15 @@ class MusicbdProvider : CsxApi() {
                     if (href.isBlank()) return@async null
                     if (href.startsWith("/")) href = "$mainUrl$href"
 
-                    val title = el.text().trim().ifBlank {
-                        href.split("/").last().replace(".html", "").replace("-", " ")
+                    var title = el.text().trim()
+                    if (title.isBlank()) {
+                        title = el.selectFirst("img")?.attr("alt")?.trim() ?: ""
+                    }
+                    if (title.isBlank()) {
+                        title = href.split("/").last().replace(".html", "").replace("-", " ")
                     }
 
-                    // Each video page fetched in parallel
-                    val poster = fetchPoster(href)
+                    val poster = fetchPoster(href) ?: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhQvNXfZt7ctszD6Fy_FwU7NfcyxIEZ6uW6asTw_5cMPS38hkm65bQdzb2bCD-86XfOUVmp5xjOANaefT4ZdWSCf_picqYtsAN5McX_3gVEfdVa5EA4h9e2noiaNLwUhMK8VaGx1mQGI_7TCnpmEI3LxtgNPeVpKsojjSbqSZh50VbyrTiP7_2KOIusBBsC/s1024/1000073990.png"
 
                     newMovieSearchResponse(title, href, TvType.Movie) {
                         this.posterUrl = poster
@@ -94,10 +100,13 @@ class MusicbdProvider : CsxApi() {
                   else "$mainUrl/site-1.html?to-search=$encoded&to-page=$page"
         val doc = app.get(url, headers = ua).document
 
-        val linkElements = doc.select("div.catlistblock a[href*=/page-download/]")
+        var linkElements = doc.select("div.catlistblock a[href*=/page-download/]")
+        if (linkElements.isEmpty()) {
+            linkElements = doc.select("div.post a[href*=/page-download/]")
+        }
+        
         if (linkElements.isEmpty()) return newSearchResponseList(emptyList(), false)
 
-        // Fetch all search result pages in parallel
         val items = coroutineScope {
             linkElements.map { el ->
                 async {
@@ -105,11 +114,15 @@ class MusicbdProvider : CsxApi() {
                     if (href.isBlank()) return@async null
                     if (href.startsWith("/")) href = "$mainUrl$href"
 
-                    val title = el.text().trim().ifBlank {
-                        href.split("/").last().replace(".html", "").replace("-", " ")
+                    var title = el.text().trim()
+                    if (title.isBlank()) {
+                        title = el.selectFirst("img")?.attr("alt")?.trim() ?: ""
+                    }
+                    if (title.isBlank()) {
+                        title = href.split("/").last().replace(".html", "").replace("-", " ")
                     }
 
-                    val poster = fetchPoster(href)
+                    val poster = fetchPoster(href) ?: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhQvNXfZt7ctszD6Fy_FwU7NfcyxIEZ6uW6asTw_5cMPS38hkm65bQdzb2bCD-86XfOUVmp5xjOANaefT4ZdWSCf_picqYtsAN5McX_3gVEfdVa5EA4h9e2noiaNLwUhMK8VaGx1mQGI_7TCnpmEI3LxtgNPeVpKsojjSbqSZh50VbyrTiP7_2KOIusBBsC/s1024/1000073990.png"
 
                     newMovieSearchResponse(title, href, TvType.Movie) {
                         this.posterUrl = poster
@@ -136,7 +149,7 @@ class MusicbdProvider : CsxApi() {
         )
             .map { it.attr("src").trim() }
             .firstOrNull { isValidPoster(it) }
-            ?.let { upgradeBloggerImageSize(it) }
+            ?.let { upgradeBloggerImageSize(it) } ?: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhQvNXfZt7ctszD6Fy_FwU7NfcyxIEZ6uW6asTw_5cMPS38hkm65bQdzb2bCD-86XfOUVmp5xjOANaefT4ZdWSCf_picqYtsAN5McX_3gVEfdVa5EA4h9e2noiaNLwUhMK8VaGx1mQGI_7TCnpmEI3LxtgNPeVpKsojjSbqSZh50VbyrTiP7_2KOIusBBsC/s1024/1000073990.png"
 
         val downloadA = doc.selectFirst("a[href*=filedownload]")
         if (downloadA != null) {
@@ -154,30 +167,28 @@ class MusicbdProvider : CsxApi() {
         }
     }
 
-        override suspend fun loadLinks(
+    override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         if (data.isBlank() || !data.contains("filedownload")) return false
-
+        
         try {
-            // Fetching the page to extract the final direct stream URL
             val doc = app.get(data, headers = ua).document
             val finalA = doc.selectFirst("a[href*=filedownload]")
-            
             if (finalA != null) {
                 var finalUrl = finalA.attr("href").trim()
                 if (finalUrl.startsWith("//")) {
                     finalUrl = "https:$finalUrl"
                 }
-
+                
                 callback.invoke(
                     newExtractorLink(
                         this.name,
                         "Direct Stream",
-                        finalUrl, // Sending the extracted final URL, not the raw 'data'
+                        finalUrl,
                         ExtractorLinkType.VIDEO
                     ) {
                         quality = Qualities.Unknown.value
@@ -188,6 +199,7 @@ class MusicbdProvider : CsxApi() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
+        
         return false
     }
+}
