@@ -94,106 +94,114 @@ class WowProvider : CsxApi() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val url = if (page == 1) request.data else "${request.data}$page/"
         val doc = app.get(url, headers = ua, timeout = 60).document
-        
+
         val items = doc.select("div.item").mapNotNull { item ->
             val a = item.selectFirst("a[href*=/videos/]") ?: return@mapNotNull null
             val href = a.attr("href")
-            val title = a.attr("title").trim().ifEmpty { 
+            val title = a.attr("title").trim().ifEmpty {
                 item.selectFirst(".title")?.text()?.trim() ?: "Unknown"
             }
-            
+
             var poster = item.selectFirst("img")?.let { img ->
                 img.attr("data-src").ifEmpty { img.attr("src") }
             }
-            
+
             if (poster?.startsWith("//") == true) poster = "https:$poster"
             if (poster?.startsWith("/") == true) poster = "$mainUrl$poster"
-            
+
             newMovieSearchResponse(title, href, TvType.Movie) {
                 this.posterUrl = poster
             }
         }
-        
+
         return newHomePageResponse(request.name, items, items.isNotEmpty())
     }
 
     override suspend fun search(query: String, page: Int): SearchResponseList? {
         val q = java.net.URLEncoder.encode(query, "UTF-8").replace("+", "-")
-        
         val url = if (page == 1) "$mainUrl/search/$q/relevance/" else "$mainUrl/search/$q/relevance/$page/"
         val document = app.get(url, headers = ua, timeout = 60).document
-        
+
         val items = document.select("div.item").mapNotNull { item ->
             val a = item.selectFirst("a[href*=/videos/]") ?: return@mapNotNull null
             val href = a.attr("href")
-            val title = a.attr("title").trim().ifEmpty { 
+            val title = a.attr("title").trim().ifEmpty {
                 item.selectFirst(".title")?.text()?.trim() ?: "Unknown"
             }
-            
+
             var poster = item.selectFirst("img")?.let { img ->
                 img.attr("data-src").ifEmpty { img.attr("src") }
             }
-            
+
             if (poster?.startsWith("//") == true) poster = "https:$poster"
             if (poster?.startsWith("/") == true) poster = "$mainUrl$poster"
-            
+
             newMovieSearchResponse(title, href, TvType.Movie) {
                 this.posterUrl = poster
             }
         }
-        
+
         val hasNext = items.isNotEmpty()
         return newSearchResponseList(items, hasNext)
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse>? {
-        // We use the standard search to return actual playable videos in the dropdown
-        // instead of text suggestions, because clicking text suggestions in Cosmix crashes the player.
         return search(query, 1)?.items?.take(5)
     }
 
     override suspend fun load(url: String): LoadResponse {
         val doc = app.get(url, headers = ua, timeout = 60).document
         val title = doc.title().trim().replace(" - wow.xxx", "", true).trim()
-        
-        // Grab the first high-res poster usually in the player container or meta tag
+
         var poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
         if (poster == null) {
             poster = doc.selectFirst(".player-container img")?.attr("src")
         }
-        
+
         val plotText = doc.selectFirst("meta[name=description]")?.attr("content")
-        
         val tags = doc.select("div.item:has(span:contains(Categories)) a.link").map { it.text() }
         val actors = doc.select("div.item:has(span:contains(Pornstars)) a.btn_model").map { it.text() }
-        
+
+        val recommendations = doc.select("div.item:has(a[href*=/videos/])").mapNotNull { item ->
+            val a = item.selectFirst("a[href*=/videos/]") ?: return@mapNotNull null
+            val recHref = a.attr("href")
+            val recTitle = a.attr("title").trim().ifEmpty {
+                item.selectFirst(".title")?.text()?.trim() ?: "Unknown"
+            }
+            var recPoster = item.selectFirst("img")?.let { img ->
+                img.attr("data-src").ifEmpty { img.attr("src") }
+            }
+            if (recPoster?.startsWith("//") == true) recPoster = "https:$recPoster"
+            if (recPoster?.startsWith("/") == true) recPoster = "$mainUrl$recPoster"
+
+            newMovieSearchResponse(recTitle, recHref, TvType.Movie) {
+                this.posterUrl = recPoster
+            }
+        }
+
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = plotText
             this.tags = tags
             this.actors = actors.map { ActorData(Actor(it)) }
+            this.recommendations = recommendations
         }
     }
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         if (data.isBlank()) return false
-        
         try {
             val html = app.get(data, headers = ua, timeout = 60).text
-            
-            // Extract the stream sources from the HTML using regex
             val matcher = Pattern.compile("src=['\"]([^'\"]*\\.mp4[^'\"]*)['\"]").matcher(html)
-            
             var found = false
             while (matcher.find()) {
                 var streamUrl = matcher.group(1) ?: continue
                 if (streamUrl.startsWith("//")) streamUrl = "https:$streamUrl"
-                
-                // Parse quality from filename like 720m.mp4
+
                 val qualityMatch = Regex("(\\d{3,4})[mp]?\\.mp4").find(streamUrl)
                 var qualityValue = Qualities.Unknown.value
                 var qualityName = "Direct Stream"
-                
+
                 if (qualityMatch != null) {
                     val q = qualityMatch.groupValues[1].toIntOrNull() ?: 0
                     qualityName = "${q}p"
@@ -222,7 +230,6 @@ class WowProvider : CsxApi() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
         return false
     }
 }
