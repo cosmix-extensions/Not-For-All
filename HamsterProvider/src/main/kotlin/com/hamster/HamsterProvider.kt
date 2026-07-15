@@ -12,7 +12,7 @@ class HamsterProvider : CsxApi() {
     override val hasMainPage = true
     override val supportedTypes = setOf(TvType.Movie)
 
-    private val ua = mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    private val ua = mapOf("User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/120.0.0.0")
     private val mapper = jacksonObjectMapper()
 
     override val mainPage = mainPageOf(
@@ -73,8 +73,6 @@ class HamsterProvider : CsxApi() {
         try {
             val root = mapper.readTree(jsonStr)
             
-            // On search or category pages, videos are usually in relatedVideosComponent or similar
-            // But let's safely traverse to find videoThumbProps
             fun findVideoProps(node: com.fasterxml.jackson.databind.JsonNode) {
                 if (node.isObject) {
                     if (node.has("videoThumbProps") && node.get("videoThumbProps").isArray) {
@@ -98,12 +96,9 @@ class HamsterProvider : CsxApi() {
             }
 
             findVideoProps(root)
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        // Deduplicate
         return list.distinctBy { it.url }
     }
 
@@ -115,6 +110,7 @@ class HamsterProvider : CsxApi() {
         var title = "Unknown Title"
         var poster: String? = null
         var description: String? = null
+        val recommendations = mutableListOf<SearchResponse>()
 
         if (match != null) {
             try {
@@ -125,21 +121,34 @@ class HamsterProvider : CsxApi() {
                     poster = videoModel.get("thumbURL")?.asText() ?: videoModel.get("imageURL")?.asText()
                     description = videoModel.get("description")?.asText()
                 }
+
+                // Extract Recommendations
+                val relatedVideos = root.get("relatedVideosComponent")?.get("videos")
+                if (relatedVideos != null && relatedVideos.isArray) {
+                    for (videoNode in relatedVideos) {
+                        val rTitle = videoNode.get("title")?.asText() ?: continue
+                        val rUrl = videoNode.get("pageURL")?.asText() ?: continue
+                        val rPoster = videoNode.get("thumbURL")?.asText() ?: videoNode.get("imageURL")?.asText()
+                        recommendations.add(
+                            newMovieSearchResponse(rTitle, rUrl, TvType.Movie) {
+                                this.posterUrl = rPoster
+                            }
+                        )
+                    }
+                }
             } catch (e: Exception) { }
         }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = description
+            this.recommendations = recommendations
         }
     }
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         try {
             val html = app.get(data, headers = ua).text
-            
-            // Extract .mp4 and .m3u8 stream sources using regex
-            // xHamster places raw links in `<video>` inside `<noscript>` tags which Jsoup ignores.
             val matches = Regex("""https?://[^"'\s]+?\.(?:mp4|m3u8)[^"'\s]*""").findAll(html)
             
             var found = false
@@ -151,7 +160,6 @@ class HamsterProvider : CsxApi() {
                     streamUrl = streamUrl.replace("\\/", "/")
                 }
                 
-                // Skip preview trailers
                 if (streamUrl.contains("thumb-") || streamUrl.contains(".t.mp4") || streamUrl.contains(".t.av1")) {
                     continue
                 }
@@ -160,8 +168,6 @@ class HamsterProvider : CsxApi() {
                 addedUrls.add(streamUrl)
                 
                 val isM3u8 = streamUrl.contains(".m3u8")
-                
-                // Determine quality
                 val qualityMatch = Regex("(\\d{3,4})p").find(streamUrl)
                 var qualityValue = Qualities.Unknown.value
                 var qualityName = if (isM3u8) "HLS Stream" else "Direct Stream"
@@ -183,12 +189,7 @@ class HamsterProvider : CsxApi() {
                 val type = if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
 
                 callback.invoke(
-                    newExtractorLink(
-                        this.name,
-                        qualityName,
-                        streamUrl,
-                        type
-                    ) {
+                    newExtractorLink(this.name, qualityName, streamUrl, type) {
                         quality = qualityValue
                         headers = mapOf("Referer" to "https://xhamster.com")
                     }
@@ -199,7 +200,6 @@ class HamsterProvider : CsxApi() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        
         return false
     }
 }
