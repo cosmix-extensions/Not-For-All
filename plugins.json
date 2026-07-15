@@ -81,7 +81,7 @@
             "cosmix-extensions"
         ],
         "description": "Only NSFW Movies Avalibale",
-        "fileSize": 33483,
+        "fileSize": 35210,
         "repositoryUrl": "https://github.com/cosmix-extensions/Not-For-All",
         "language": "en",
         "tvTypes": [
@@ -89,10 +89,10 @@
         ],
         "iconUrl": "https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.wow.xxx/&size=128",
         "apiVersion": 1,
-        "fileHash": "sha256-cb60cd79ed366197e4261d32c877449701bcd7ef2f1f05ee9284e1b198d6eb66",
-        "jarFileSize": 52900,
+        "fileHash": "sha256-069d785a25262b68d4c7b628ef77ba50dce17e0ccf7516ba48384ac6ba7a868b",
+        "jarFileSize": 55960,
         "jarUrl": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowProvider.jar",
-        "jarHash": "sha256-1913fc85e69115f9f9ee89b53728cde6cee6a7bd5f6f7a470e98e6f4f20aa701"
+        "jarHash": "sha256-702812475cdfd8060c1438b2c5afecd60472cda10f7438b8053aa2b84fabfd2b"
     },
     {
         "url": "https://raw.githubusercontent.com/cosmix-extensions/Not-For-All/builds/WowUncutProvider.csx",
