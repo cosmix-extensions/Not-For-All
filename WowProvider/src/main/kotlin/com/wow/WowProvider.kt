@@ -202,10 +202,7 @@ class WowProvider : CsxApi() {
             this.tags = tags
             this.actors = actors.map { ActorData(Actor(it)) }
             this.recommendations = recommendations
-            
-            if (!trailerUrl.isNullOrBlank()) {
-                addTrailer(trailerUrl)
-            }
+            addTrailer(trailerUrl)
         }
     }
 
