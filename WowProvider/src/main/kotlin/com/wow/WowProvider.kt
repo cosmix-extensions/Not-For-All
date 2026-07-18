@@ -150,7 +150,10 @@ class WowProvider : CsxApi() {
     }
 
     override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url, headers = ua, timeout = 60).document
+        val response = app.get(url, headers = ua, timeout = 60)
+        val doc = response.document
+        val htmlText = response.text
+        
         val title = doc.title().trim().replace(" - wow.xxx", "", true).trim()
 
         var poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
@@ -179,12 +182,29 @@ class WowProvider : CsxApi() {
             }
         }
 
+        var trailerUrl: String? = doc.selectFirst("video source")?.attr("src") 
+            ?: doc.selectFirst("video")?.attr("src")
+
+        if (trailerUrl.isNullOrBlank()) {
+            val matcher = Pattern.compile("src=['\"]([^'\"]*\\.mp4[^'\"]*)['\"]").matcher(htmlText)
+            if (matcher.find()) {
+                trailerUrl = matcher.group(1)
+            }
+        }
+
+        if (trailerUrl?.startsWith("//") == true) trailerUrl = "https:$trailerUrl"
+        if (trailerUrl?.startsWith("/") == true) trailerUrl = "$mainUrl$trailerUrl"
+
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
             this.posterUrl = poster
             this.plot = plotText
             this.tags = tags
             this.actors = actors.map { ActorData(Actor(it)) }
             this.recommendations = recommendations
+            
+            if (!trailerUrl.isNullOrBlank()) {
+                this.trailerUrl = trailerUrl
+            }
         }
     }
 
