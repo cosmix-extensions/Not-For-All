@@ -2,6 +2,7 @@ package com.wow
 
 import com.cosmix.app.*
 import com.cosmix.app.utils.*
+import com.cosmix.app.LoadResponse.Companion.addTrailer
 import java.util.regex.Pattern
 
 class WowProvider : CsxApi() {
@@ -203,7 +204,7 @@ class WowProvider : CsxApi() {
             this.recommendations = recommendations
             
             if (!trailerUrl.isNullOrBlank()) {
-                this.trailerUrl = trailerUrl
+                addTrailer(trailerUrl)
             }
         }
     }
